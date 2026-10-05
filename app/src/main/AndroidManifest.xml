@@ -13,6 +13,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar">
 
+        <!-- الشاشة الرئيسية للتطبيق -->
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -21,6 +22,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- شاشة محرر الماكرو والخطوات الجديد (MacroEditorActivity) -->
+        <activity
+            android:name=".MacroEditorActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MaterialComponents.DayNight.NoActionBar" />
 
         <!-- خدمة إمكانية الوصول للنقر والسحب -->
         <service
