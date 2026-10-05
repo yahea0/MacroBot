@@ -21,37 +21,49 @@ import androidx.core.app.NotificationCompat;
 public class FloatingService extends Service {
 
     private WindowManager windowManager;
-    private LinearLayout floatingControlPanel;
+    private View bubbleView;
+    private LinearLayout menuLayout;
     private WindowManager.LayoutParams params;
+    private boolean isExpanded = false;
 
     @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
+    public IBinder onBind(Intent intent) { return null; }
 
     @Override
     public void onCreate() {
         super.onCreate();
-
         startForegroundServiceNotification();
+
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
 
-        // انشاء شريط الأدوات العائم
-        floatingControlPanel = new LinearLayout(this);
-        floatingControlPanel.setOrientation(LinearLayout.VERTICAL);
-        floatingControlPanel.setBackgroundColor(Color.parseColor("#CC111111"));
-        floatingControlPanel.setPadding(15, 15, 15, 15);
+        // إنشاء الزر الدائري الرئيسي (Floating Widget Bubble)
+        Button bubbleButton = new Button(this);
+        bubbleButton.setText("🤖");
+        bubbleButton.setTextSize(20);
+        bubbleButton.setBackgroundColor(Color.parseColor("#8A2BE2"));
+        bubbleButton.setTextColor(Color.WHITE);
 
-        // إضافة أزرار التحكم
-        Button btnPlay = createToolButton("▶️ تشغيل");
-        Button btnAddClick = createToolButton("➕ نقطة نقر");
-        Button btnAddSwipe = createToolButton("↔️ مسار سحب");
-        Button btnClose = createToolButton("❌ إغلاق");
+        // إنشاء قائمة الخيارات
+        menuLayout = new LinearLayout(this);
+        menuLayout.setOrientation(LinearLayout.VERTICAL);
+        menuLayout.setBackgroundColor(Color.parseColor("#DD1E1E1E"));
+        menuLayout.setPadding(10, 10, 10, 10);
+        menuLayout.setVisibility(View.GONE);
 
-        floatingControlPanel.addView(btnPlay);
-        floatingControlPanel.addView(btnAddClick);
-        floatingControlPanel.addView(btnAddSwipe);
-        floatingControlPanel.addView(btnClose);
+        Button btnPlay = createMenuBtn("▶️ Play Mode");
+        Button btnEdit = createMenuBtn("✏️ Edit Mode");
+        Button btnClose = createMenuBtn("❌ Close");
+
+        menuLayout.addView(btnPlay);
+        menuLayout.addView(btnEdit);
+        menuLayout.addView(btnClose);
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.VERTICAL);
+        container.addView(bubbleButton, new LinearLayout.LayoutParams(140, 140));
+        container.addView(menuLayout);
+
+        bubbleView = container;
 
         int layoutFlag = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
                 ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -66,15 +78,16 @@ public class FloatingService extends Service {
         );
 
         params.gravity = Gravity.TOP | Gravity.START;
-        params.x = 20;
-        params.y = 400;
+        params.x = 50;
+        params.y = 500;
 
-        windowManager.addView(floatingControlPanel, params);
+        windowManager.addView(bubbleView, params);
 
-        // ميزة تحريك الشريط بأي اتجاه عبر السحب
-        floatingControlPanel.setOnTouchListener(new View.OnTouchListener() {
+        // التعامل مع السحب والضغط للكرة العائمة
+        bubbleButton.setOnTouchListener(new View.OnTouchListener() {
             private int initialX, initialY;
             private float initialTouchX, initialTouchY;
+            private static final int CLICK_THRESHOLD = 10;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -88,79 +101,69 @@ public class FloatingService extends Service {
                     case MotionEvent.ACTION_MOVE:
                         params.x = initialX + (int) (event.getRawX() - initialTouchX);
                         params.y = initialY + (int) (event.getRawY() - initialTouchY);
-                        windowManager.updateViewLayout(floatingControlPanel, params);
+                        windowManager.updateViewLayout(bubbleView, params);
+                        return true;
+                    case MotionEvent.ACTION_UP:
+                        int diffX = Math.abs((int) (event.getRawX() - initialTouchX));
+                        int diffY = Math.abs((int) (event.getRawY() - initialTouchY));
+                        if (diffX < CLICK_THRESHOLD && diffY < CLICK_THRESHOLD) {
+                            toggleMenu();
+                        }
                         return true;
                 }
                 return false;
             }
         });
 
-        // البرمجة والتفاعل للأزرار
-        btnAddClick.setOnClickListener(v -> {
-            MacroAccessibilityService service = MacroAccessibilityService.getInstance();
-            if (service != null) {
-                service.performClick(500, 1000, 50);
-                Toast.makeText(this, "تم تنفيذ تجربة نقرة!", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "يرجى تفعيل خدمة إمكانية الوصول أولاً!", Toast.LENGTH_LONG).show();
-            }
+        btnEdit.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MacroEditorActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            toggleMenu();
         });
 
-        btnAddSwipe.setOnClickListener(v -> {
-            MacroAccessibilityService service = MacroAccessibilityService.getInstance();
-            if (service != null) {
-                service.performSwipe(500, 1500, 500, 600, 300);
-                Toast.makeText(this, "تم تنفيذ تجربة سحب!", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "يرجى تفعيل خدمة إمكانية الوصول أولاً!", Toast.LENGTH_LONG).show();
-            }
+        btnPlay.setOnClickListener(v -> {
+            Toast.makeText(this, "بدء تنفيذ الماكرو...", Toast.LENGTH_SHORT).show();
+            toggleMenu();
         });
-
-        btnPlay.setOnClickListener(v -> 
-            Toast.makeText(this, "سيتم تشغيل حلقة السيناريو...", Toast.LENGTH_SHORT).show()
-        );
 
         btnClose.setOnClickListener(v -> stopSelf());
     }
 
-    private Button createToolButton(String text) {
-        Button btn = new Button(this);
-        btn.setText(text);
-        btn.setTextSize(12);
-        btn.setTextColor(Color.WHITE);
-        btn.setBackgroundColor(Color.parseColor("#333333"));
-        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
-        );
-        layoutParams.setMargins(0, 5, 0, 5);
-        btn.setLayoutParams(layoutParams);
-        return btn;
+    private void toggleMenu() {
+        if (isExpanded) {
+            menuLayout.setVisibility(View.GONE);
+        } else {
+            menuLayout.setVisibility(View.VISIBLE);
+        }
+        isExpanded = !isExpanded;
+    }
+
+    private Button createMenuBtn(String text) {
+        Button b = new Button(this);
+        b.setText(text);
+        b.setTextSize(12);
+        b.setTextColor(Color.WHITE);
+        b.setBackgroundColor(Color.parseColor("#333333"));
+        return b;
     }
 
     private void startForegroundServiceNotification() {
-        String channelId = "macro_bot_channel";
+        String channelId = "macro_channel";
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            NotificationChannel channel = new NotificationChannel(
-                    channelId, "MacroBot Control",
-                    NotificationManager.IMPORTANCE_LOW
-            );
-            NotificationManager manager = getSystemService(NotificationManager.class);
-            if (manager != null) manager.createNotificationChannel(channel);
+            NotificationChannel channel = new NotificationChannel(channelId, "Macro Service", NotificationManager.IMPORTANCE_LOW);
+            getSystemService(NotificationManager.class).createNotificationChannel(channel);
         }
-
         Notification notification = new NotificationCompat.Builder(this, channelId)
-                .setContentTitle("MacroBot شغال")
-                .setContentText("شريط التحكم العائم نشط")
+                .setContentTitle("MacroBot Running")
                 .setSmallIcon(android.R.drawable.ic_menu_compass)
                 .build();
-
-        startForeground(101, notification);
+        startForeground(102, notification);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (floatingControlPanel != null) windowManager.removeView(floatingControlPanel);
+        if (bubbleView != null) windowManager.removeView(bubbleView);
     }
 }
