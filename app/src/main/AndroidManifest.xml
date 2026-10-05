@@ -31,6 +31,11 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- خدمة النافذة العائمة -->
+        <service
+            android:name=".FloatingService"
+            android:exported="false" />
+
     </application>
 
 </manifest>
