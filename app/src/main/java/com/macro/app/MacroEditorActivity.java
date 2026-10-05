@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -49,14 +50,14 @@ public class MacroEditorActivity extends AppCompatActivity {
         // حفظ السكربت كاملاً
         btnSave.setOnClickListener(v -> {
             MacroStorage.saveMacro(this, currentMacroName, actionsList);
-            Toast.makeText(this, "تم حفظ الماكرو نجاح!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "تم حفظ الماكرو بنجاح!", Toast.LENGTH_SHORT).show();
         });
     }
 
     private void showAddActionDialog() {
         String[] options = {
             "🎯 Click (x, y)", 
-            "🖼️️ Click Image (مطابقة صورة)", 
+            "🖼 Click Image (مطابقة صورة)", 
             "↔️ Swipe (سحب)", 
             "⏱️ Wait (انتظار)", 
             "◀️ Press Back", 
