@@ -20,19 +20,30 @@ public class MacroAccessibilityService extends AccessibilityService {
     }
 
     @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {
-    }
+    public void onAccessibilityEvent(AccessibilityEvent event) {}
 
     @Override
-    public void onInterrupt() {
-    }
+    public void onInterrupt() {}
 
-    public void performClick(int x, int y) {
+    // 1. النقر والنقر المطول (حسب مدة durationMs)
+    public void performClick(int x, int y, long durationMs) {
         Path path = new Path();
         path.moveTo(x, y);
         GestureDescription.Builder builder = new GestureDescription.Builder();
         GestureDescription gestureDescription = builder
-                .addStroke(new GestureDescription.StrokeDescription(path, 0, 50))
+                .addStroke(new GestureDescription.StrokeDescription(path, 0, Math.max(durationMs, 50)))
+                .build();
+        dispatchGesture(gestureDescription, null, null);
+    }
+
+    // 2. السحب / Drag / Swipe
+    public void performSwipe(int startX, int startY, int endX, int endY, long durationMs) {
+        Path path = new Path();
+        path.moveTo(startX, startY);
+        path.lineTo(endX, endY);
+        GestureDescription.Builder builder = new GestureDescription.Builder();
+        GestureDescription gestureDescription = builder
+                .addStroke(new GestureDescription.StrokeDescription(path, 0, Math.max(durationMs, 200)))
                 .build();
         dispatchGesture(gestureDescription, null, null);
     }
