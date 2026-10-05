@@ -30,8 +30,13 @@ public class MainActivity extends AppCompatActivity {
                         Uri.parse("package:" + getPackageName()));
                 startActivity(intent);
             } else {
-                startService(new Intent(this, FloatingService.class));
-                Toast.makeText(this, "تم تشغيل القائمة العائمة!", Toast.LENGTH_SHORT).show();
+                Intent serviceIntent = new Intent(this, FloatingService.class);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    startForegroundService(serviceIntent);
+                } else {
+                    startService(serviceIntent);
+                }
+                Toast.makeText(this, "تم إطلاق شريط أدوات الماكرو العائم!", Toast.LENGTH_SHORT).show();
             }
         });
     }
